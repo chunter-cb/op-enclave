@@ -54,5 +54,7 @@
   "proofMaturityDelaySeconds": 0,
   "disputeGameFinalityDelaySeconds": 0,
   "respectedGameType": 0,
-  "useFaultProofs": false
+  "useFaultProofs": false,
+  "useCustomGasToken": false,
+  "customGasTokenAddress": "0x0000000000000000000000000000000000000000"
 }

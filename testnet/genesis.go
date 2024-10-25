@@ -82,6 +82,8 @@ type Config struct {
 	BaseFeeVaultRecipient      common.Address `json:"baseFeeVaultRecipient"`
 	L1FeeVaultRecipient        common.Address `json:"l1FeeVaultRecipient"`
 	SequencerFeeVaultRecipient common.Address `json:"sequencerFeeVaultRecipient"`
+	CustomGasTokenAddress      common.Address `json:"customGasTokenAddress"`
+	UseCustomGasToken          bool           `json:"useCustomGasToken"`
 }
 
 func (c *Config) Check() error {

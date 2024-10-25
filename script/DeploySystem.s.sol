@@ -230,6 +230,12 @@ contract DeploySystem is Deploy {
 
         bytes32 batcherHash = bytes32(uint256(uint160(cfg.batchSenderAddress())));
 
+        address customGasTokenAddress = Constants.ETHER;
+        if (cfg.useCustomGasToken()) {
+            customGasTokenAddress = cfg.customGasTokenAddress();
+            console.log("configured to use custom gas token %s", customGasTokenAddress);
+        }
+
         _upgradeAndCallViaSafe({
             _proxy: payable(systemConfigProxy),
             _implementation: systemConfig,
@@ -251,7 +257,7 @@ contract DeploySystem is Deploy {
                         disputeGameFactory: mustGetAddress("DisputeGameFactoryProxy"),
                         optimismPortal: mustGetAddress("OptimismPortalProxy"),
                         optimismMintableERC20Factory: mustGetAddress("OptimismMintableERC20FactoryProxy"),
-                        gasPayingToken: Constants.ETHER
+                        gasPayingToken: customGasTokenAddress
                     })
                 )
             )
