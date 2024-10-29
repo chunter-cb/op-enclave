@@ -82,8 +82,6 @@ type Config struct {
 	BaseFeeVaultRecipient      common.Address `json:"baseFeeVaultRecipient"`
 	L1FeeVaultRecipient        common.Address `json:"l1FeeVaultRecipient"`
 	SequencerFeeVaultRecipient common.Address `json:"sequencerFeeVaultRecipient"`
-	CustomGasTokenAddress      common.Address `json:"customGasTokenAddress"`
-	UseCustomGasToken          bool           `json:"useCustomGasToken"`
 }
 
 func (c *Config) Check() error {
@@ -184,6 +182,11 @@ func Main(cliCtx *cli.Context) error {
 		return fmt.Errorf("failed to calculate BatchInbox address: %w", err)
 	}
 
+	systemConfig, err := bindings.NewSystemConfig(l1Addresses.SystemConfig, client)
+	if err != nil {
+		return fmt.Errorf("failed to create SystemConfig binding, %w", err)
+	}
+
 	prefix := filepath.Join(outputPath, fmt.Sprintf("%s-%s-", chainID.String(), l2ChainID.String()))
 	var genesisConfig Config
 	if configPath == "" {
@@ -277,6 +280,21 @@ func Main(cliCtx *cli.Context) error {
 	config.OptimismPortalProxy = l1Addresses.OptimismPortal
 	config.DAChallengeProxy = common.Address{}
 	config.ProtocolVersionsProxy = protocolVersions
+
+	// custom token configuration
+	isCustomGasToken, err := systemConfig.IsCustomGasToken(&bind.CallOpts{})
+	if err != nil {
+		return fmt.Errorf("failed to get isCustomGasToken from SystemConfig, %w", err)
+	}
+
+	if isCustomGasToken {
+		customTokenInfo, err := systemConfig.GasPayingToken(&bind.CallOpts{})
+		if err != nil {
+			return fmt.Errorf("failed to get customGasTokenAddress from SystemConfig, %w", err)
+		}
+		config.UseCustomGasToken = isCustomGasToken
+		config.CustomGasTokenAddress = customTokenInfo.Addr
+	}
 
 	l1Header, err := client.HeaderByNumber(ctx, nil)
 	if err != nil {
