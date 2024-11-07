@@ -100,6 +100,7 @@ contract DeployChain {
         uint32 basefeeScalar,
         uint32 blobbasefeeScalar,
         uint64 gasLimit,
+        address gasToken,
         address batcherAddress,
         address unsafeBlockSigner,
         address proposer
@@ -126,6 +127,7 @@ contract DeployChain {
             basefeeScalar,
             blobbasefeeScalar,
             gasLimit,
+            gasToken,
             batcherAddress,
             unsafeBlockSigner,
             batchInbox,
@@ -213,6 +215,7 @@ contract DeployChain {
         uint32 basefeeScalar,
         uint32 blobbasefeeScalar,
         uint64 gasLimit,
+        address gasToken,
         address batcherAddress,
         address unsafeBlockSigner,
         address batchInbox,
@@ -240,7 +243,7 @@ contract DeployChain {
                 disputeGameFactory: address(0),
                 optimismPortal: addresses.optimismPortal,
                 optimismMintableERC20Factory: addresses.optimismMintableERC20Factory,
-                gasPayingToken: address(0)
+                gasPayingToken: gasToken
             })
         });
 
