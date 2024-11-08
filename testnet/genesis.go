@@ -141,7 +141,7 @@ func Main(cliCtx *cli.Context) error {
 	deployPrivateKey := cliCtx.String(DeployPrivateKeyFlag.Name)
 	configPath := cliCtx.Path(ConfigPathFlag.Name)
 	outputPath := cliCtx.Path(OutputPathFlag.Name)
-	customGasToken := cliCtx.String(DeployPrivateKeyFlag.Name)
+	customGasToken := cliCtx.String(CustomGasTokenFlag.Name)
 
 	err := os.MkdirAll(outputPath, 0755)
 	if err != nil {
@@ -187,6 +187,17 @@ func Main(cliCtx *cli.Context) error {
 	batchInboxAddress, err := deployChain.CalculateBatchInbox(&bind.CallOpts{}, l2ChainID)
 	if err != nil {
 		return fmt.Errorf("failed to calculate BatchInbox address: %w", err)
+	}
+
+	if customGasToken != "" {
+		log.Info("Checking custom gas token", "address", customGasToken)
+		code, err := client.CodeAt(ctx, common.HexToAddress(customGasToken), nil)
+		if err != nil {
+			return fmt.Errorf("failed to check custom gas token code: %w", err)
+		}
+		if len(code) == 0 {
+			return fmt.Errorf("custom gas token address %s has no code", customGasToken)
+		}
 	}
 
 	prefix := filepath.Join(outputPath, fmt.Sprintf("%s-%s-", chainID.String(), l2ChainID.String()))
@@ -285,6 +296,7 @@ func Main(cliCtx *cli.Context) error {
 
 	// custom token configuration
 	if customGasToken != "" {
+
 		config.UseCustomGasToken = true
 		config.CustomGasTokenAddress = common.HexToAddress(customGasToken)
 	}
