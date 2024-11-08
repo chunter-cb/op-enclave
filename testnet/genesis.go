@@ -63,6 +63,11 @@ var (
 		EnvVars: []string{"OUTPUT_PATH"},
 		Value:   "./deployments",
 	}
+	CustomGasTokenFlag = &cli.StringFlag{
+		Name:    "gas-token",
+		Usage:   "Use a custom gas token",
+		EnvVars: []string{"CUSTOM_GAS_TOKEN"},
+	}
 )
 
 var Flags = []cli.Flag{
@@ -71,6 +76,7 @@ var Flags = []cli.Flag{
 	DeployPrivateKeyFlag,
 	ConfigPathFlag,
 	OutputPathFlag,
+	CustomGasTokenFlag,
 }
 
 type Config struct {
@@ -135,6 +141,7 @@ func Main(cliCtx *cli.Context) error {
 	deployPrivateKey := cliCtx.String(DeployPrivateKeyFlag.Name)
 	configPath := cliCtx.Path(ConfigPathFlag.Name)
 	outputPath := cliCtx.Path(OutputPathFlag.Name)
+	customGasToken := cliCtx.String(DeployPrivateKeyFlag.Name)
 
 	err := os.MkdirAll(outputPath, 0755)
 	if err != nil {
@@ -180,11 +187,6 @@ func Main(cliCtx *cli.Context) error {
 	batchInboxAddress, err := deployChain.CalculateBatchInbox(&bind.CallOpts{}, l2ChainID)
 	if err != nil {
 		return fmt.Errorf("failed to calculate BatchInbox address: %w", err)
-	}
-
-	systemConfig, err := bindings.NewSystemConfig(l1Addresses.SystemConfig, client)
-	if err != nil {
-		return fmt.Errorf("failed to create SystemConfig binding, %w", err)
 	}
 
 	prefix := filepath.Join(outputPath, fmt.Sprintf("%s-%s-", chainID.String(), l2ChainID.String()))
@@ -282,18 +284,9 @@ func Main(cliCtx *cli.Context) error {
 	config.ProtocolVersionsProxy = protocolVersions
 
 	// custom token configuration
-	isCustomGasToken, err := systemConfig.IsCustomGasToken(&bind.CallOpts{})
-	if err != nil {
-		return fmt.Errorf("failed to get isCustomGasToken from SystemConfig, %w", err)
-	}
-
-	if isCustomGasToken {
-		customTokenInfo, err := systemConfig.GasPayingToken(&bind.CallOpts{})
-		if err != nil {
-			return fmt.Errorf("failed to get customGasTokenAddress from SystemConfig, %w", err)
-		}
-		config.UseCustomGasToken = isCustomGasToken
-		config.CustomGasTokenAddress = customTokenInfo.Addr
+	if customGasToken != "" {
+		config.UseCustomGasToken = true
+		config.CustomGasTokenAddress = common.HexToAddress(customGasToken)
 	}
 
 	l1Header, err := client.HeaderByNumber(ctx, nil)
@@ -392,6 +385,14 @@ func Main(cliCtx *cli.Context) error {
 			return types.SignTx(tx, signer, deployKey)
 		},
 	}
+
+	gasConfig := bindings.DeployChainGasConfiguration{
+		BasefeeScalar:     config.GasPriceOracleBaseFeeScalar,
+		BlobbasefeeScalar: config.GasPriceOracleBlobBaseFeeScalar,
+		GasLimit:          uint64(config.L2GenesisBlockGasLimit),
+		GasToken:          config.CustomGasTokenAddress,
+	}
+
 	tx, err := deployChain.Deploy(
 		opts,
 		l2ChainID,
@@ -399,9 +400,7 @@ func Main(cliCtx *cli.Context) error {
 		genesisBlock.Hash(),
 		genesisBlock.Root(),
 		l2Genesis.Timestamp,
-		config.GasPriceOracleBaseFeeScalar,
-		config.GasPriceOracleBlobBaseFeeScalar,
-		uint64(config.L2GenesisBlockGasLimit),
+		gasConfig,
 		config.BatchSenderAddress,
 		config.P2PSequencerAddress,
 		config.L2OutputOracleProposer,
